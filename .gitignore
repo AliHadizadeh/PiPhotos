@@ -1,0 +1,16 @@
+# work folders and state of the migration tool
+scripts/migrate/work/
+scripts/post/work/
+scripts/dates/*.tsv
+scripts/dates/shift-dates.log.tsv
+# site files and secrets: never commit these
+scripts/post/owners.json
+*.key
+smtp.json
+tuya-cloud.json
+tuya-devices.json
+backup.conf
+# noise
+__pycache__/
+*.pyc
+.DS_Store

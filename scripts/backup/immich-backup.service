@@ -1,0 +1,13 @@
+[Unit]
+Description=Weekly Immich backup to the backup disk (smart-plug powered)
+After=docker.service network-online.target
+Wants=network-online.target
+OnFailure=immich-backup-failed.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/immich-tools/backup/immich_backup.sh
+TimeoutStartSec=36h
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

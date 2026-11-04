@@ -1,0 +1,47 @@
+# /etc/immich-tools/backup.conf  -  every site-specific value of the backup tools. Shell syntax, KEY=VALUE.
+# Copy this file to /etc/immich-tools/backup.conf and edit it. Secrets live in separate files, mode 600.
+
+# Where the tools are installed and where they keep logs and state (NVMe, survives reboots)
+TOOLS_DIR=/opt/immich-tools/backup
+STATE_ROOT=/var/lib/immich-tools
+
+# Immich
+IMMICH_URL=http://localhost:2283
+IMMICH_DIR=/opt/immich                 # docker-compose.yml and .env, copied into the backup
+IMMICH_DATA=/mnt/immich                # the photo disk; Immich's UPLOAD_LOCATION is $IMMICH_DATA/media
+ADMIN_KEY_FILE=/etc/immich-tools/admin.key
+DB_CONTAINER=immich_postgres
+DB_USER=postgres
+DB_NAME=immich
+
+# The backup disk. Find the by-id path with: ls -l /dev/disk/by-id/ | grep -v part
+BACKUP_DISK_BYID=/dev/disk/by-id/usb-VENDOR_MODEL_SERIAL-0:0
+BACKUP_DISK_NAME="Backup disk 4 TB"     # free text for the reports
+BACKUP_DISK_MODEL_MATCH="*Backup*"     # glob that must match lsblk's MODEL, a guard for format_backup_disk.sh
+BACKUP_DISK_SIZE_MIN=3900000000000     # bytes; the format script refuses a disk outside this range
+BACKUP_DISK_SIZE_MAX=4100000000000
+BACKUP_MNT=/mnt/immich-backup
+
+# What to copy: folders under IMMICH_DATA, space separated. "media" is Immich's data. Add your own record folders.
+SYNC_DIRS="media"
+# rsync excludes, relative to each folder, space separated. Leave empty to copy everything.
+# When the backup disk fills up: EXCLUDE="thumbs encoded-video"
+EXCLUDE=""
+
+# Policies
+CAPACITY_PCT=90          # refuse to start when the source exceeds this share of the backup disk; warn when the backup passes it
+KEEP_REMOVED_DAYS=84     # deleted or changed files stay in removed/<date>/ this long
+FULL_VERIFY_EVERY=13     # every Nth run hashes every original (run 1 included)
+SAMPLE_PCT=2             # other runs hash this share of the older originals, plus everything copied in the run
+
+# The smart plug (Tuya protocol). Chapter 8 explains how to get the device id and the local key.
+PLUG_ID=                 # 22-character device id from the plug's app
+PLUG_PROTOCOL=3.3        # as reported by "python -m tinytuya scan"
+PLUG_FALLBACK_IP=        # optional; the plug is found by id on the LAN anyway
+PLUG_MIN_GAP_MIN=10      # minutes between a power-off and the next power-on
+PLUG_MAX_ON_PER_DAY=6    # refuse more power-ons than this in 24 h
+TUYA_CLOUD=/etc/immich-tools/tuya-cloud.json      # {"client_id","secret","region","device_id"} for the one-time key fetch
+TUYA_DEVICES=/etc/immich-tools/tuya-devices.json  # written by tuya_cloud_key.py; holds the local key
+
+# Email reports. JSON: {"host","port","user","password","from","to":["..."]}; port 465 = SSL, 587 = STARTTLS
+SMTP_FILE=/etc/immich-tools/smtp.json

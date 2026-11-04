@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily 09:00 check of the Immich backup state
+
+[Timer]
+OnCalendar=*-*-* 09:00:00
+Persistent=true
+Unit=immich-backup-watch.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,7 @@
+[Unit]
+Description=Daily check of the Immich backup state (standing failure, stale backup, drive left on)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/immich-tools/backup/watchdog.sh

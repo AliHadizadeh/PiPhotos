@@ -1,0 +1,43 @@
+# Immich machine-learning containers for a GPU machine (Windows with Docker Desktop, or Linux).
+# One CUDA container for faces and search, one CPU container for OCR.
+# The image is pinned to the server version running on the Pi. When Immich on
+# the Pi is upgraded, change the tag here and run `docker compose up -d` again.
+name: immich_remote_ml
+
+services:
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    image: ghcr.io/immich-app/immich-machine-learning:v3-cuda   # pin to the version running on the Pi
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]        # list every GPU you want to use, one worker per GPU
+              capabilities: [gpu]
+    environment:
+      MACHINE_LEARNING_DEVICE_IDS: "0"
+      MACHINE_LEARNING_WORKERS: "1"     # one per GPU
+      # Max concurrent inferences per worker. ONNX Runtime's GPU memory arena grows with
+      # concurrency and never shrinks, so this bounds how much of each card gets used.
+      MACHINE_LEARNING_REQUEST_THREADS: "4"
+    volumes:
+      - model-cache:/cache      # downloaded models (a few GB) survive restarts
+    ports:
+      - "3003:3003"             # the Pi talks to http://<gpu-machine>:3003
+    restart: unless-stopped
+
+  # CPU-only twin for OCR: in v3.3.5 the OCR models fail on CUDA for about one image
+  # in five, and failed requests fall through to the next URL in Immich's list.
+  # Same models, same cache volume, published on port 3004.
+  immich-machine-learning-cpu:
+    container_name: immich_machine_learning_cpu
+    image: ghcr.io/immich-app/immich-machine-learning:v3        # same version as above
+    volumes:
+      - model-cache:/cache
+    ports:
+      - "3004:3003"             # the Pi talks to http://<gpu-machine>:3004
+    restart: unless-stopped
+
+volumes:
+  model-cache:

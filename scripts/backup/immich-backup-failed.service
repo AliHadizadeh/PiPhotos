@@ -1,0 +1,6 @@
+[Unit]
+Description=Report an Immich backup service failure that produced no status
+
+[Service]
+Type=oneshot
+ExecStart=/opt/immich-tools/backup/report_failure.sh

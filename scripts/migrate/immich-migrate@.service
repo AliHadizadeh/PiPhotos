@@ -1,0 +1,23 @@
+[Unit]
+Description=Apple Photos to Immich migration (%i)
+After=network-online.target docker.service
+Wants=network-online.target
+RequiresMountsFor=/mnt/photos /mnt/immich
+
+[Service]
+Type=simple
+# Edit USER and the paths. %i is the user name you pass to systemctl, e.g. immich-migrate@alice.
+User=USER
+WorkingDirectory=/home/USER/PiPhotos/scripts/migrate
+Environment=IMMICH_SERVER=http://localhost:2283
+ExecStart=/usr/bin/python3 -u migrate.py --manifest work/%i/manifest.jsonl --api-key-file /home/USER/.config/immich-tools/%i.key --path-prefix /Volumes/DISK=/mnt/photos --workers 2 --newest-first
+StandardOutput=append:/home/USER/PiPhotos/scripts/migrate/work/%i.run.log
+StandardError=append:/home/USER/PiPhotos/scripts/migrate/work/%i.run.log
+Restart=on-failure
+RestartSec=120
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=5
+
+[Install]
+WantedBy=multi-user.target

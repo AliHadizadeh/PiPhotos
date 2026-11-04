@@ -1,0 +1,4 @@
+{
+  "alice": {"id": "00000000-0000-0000-0000-000000000001", "key_file": "~/.config/immich-tools/alice.key", "display": "Alice"},
+  "bob":   {"id": "00000000-0000-0000-0000-000000000002", "key_file": "~/.config/immich-tools/bob.key",   "display": "Bob"}
+}
