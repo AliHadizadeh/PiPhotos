@@ -60,7 +60,7 @@ Any Linux machine with Docker and USB 3 can take over. Follow 9.3 on that machin
 ## 9.5 Someone deleted the wrong photos
 
 - Within 30 days: Immich's trash restores them, with their albums and names.
-- Within 12 weeks: the backup disk holds the files under `removed/<date>/`. Fetch them from there and upload them again, through the web app, the phone app or the Immich CLI. Do not copy them into the library folder by hand: a file without a database row is invisible to Immich, and the integrity check only reports it as untracked. Album membership and names come back only with a database restore, which is rarely worth it for a few photos.
+- After Immich deleted them: until the next weekly run, the backup disk still holds the files under `media/library/`. After that run, they are under `removed/<date>/` for about 13 weeks, [chapter 8.7](08-backup.md). The report's "Only on the backup" row counts them. Fetch them from there and upload them again, through the web app, the phone app or the Immich CLI. Do not copy them into the library folder by hand: a file without a database row is invisible to Immich, and the integrity check only reports it as untracked. Album membership and names come back only with a database restore, which is rarely worth it for a few photos.
 - Later: gone, unless an older full backup exists elsewhere.
 
 ## 9.6 A file is corrupt

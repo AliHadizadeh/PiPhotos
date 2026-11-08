@@ -8,8 +8,8 @@ Read [chapter 8](../../docs/08-backup.md) first. Everything site-specific is in 
 | `format_backup_disk.sh` | erases and formats the backup disk, adds the `noauto` fstab line |
 | `surface_read.sh` | reads the whole disk once, read-only, mails the result, then starts `initial_copy.sh` on a clean result |
 | `initial_copy.sh` | the first full copy, resumable, then schedules the first weekly run |
-| `immich_backup.sh` | the weekly run: plug on, mount, read sample, capacity, fresh database dump, config copy, rsync with `removed/<date>`, purge, verify, unmount, detach, plug off, status, email |
-| `backup_helpers.py` | `dump`, `export-config`, `verify` (against Immich's checksums), `email` (HTML and text, retries, queue) |
+| `immich_backup.sh` | the weekly run: plug on, mount, read sample, capacity, fresh database dump, config copy, rsync with `removed/<date>`, deletion counts, purge, verify, unmount, detach, plug off, status, email |
+| `backup_helpers.py` | `dump`, `export-config`, `verify` (against Immich's checksums), `email` (HTML and text, retries, queue, sender name), `deletion-stats` (photos and videos in Immich's trash and only on the backup) |
 | `backup_plug.py` | `on`, `off`, `status`, `ratecheck` for the Tuya plug; logs power changes, limits power cycles, emails on failure |
 | `tuya_cloud_key.py` | one-time fetch of the plug's local key through the Tuya developer platform |
 | `plug_test.sh` | plug on, disk appears, clean detach, plug off, disk gone |

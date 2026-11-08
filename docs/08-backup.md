@@ -18,7 +18,7 @@ Immich is originals plus database. Everything else is convenience. Copy everythi
 ## 8.2 The design
 
 - **A plain mirror with rsync.** Files on the backup are files. A restore is a copy. Any Linux machine reads the disk.
-- **Deleted or changed files are kept** in `removed/<date>/` for 12 weeks, then purged. A mistake in Immich can be undone for three months.
+- **Deleted or changed files are kept** in `removed/<date>/`. The first weekly run after a folder is 12 weeks old purges it. A mistake in Immich can be undone for about four months: 30 days in Immich's trash, then about 13 weeks on the backup. Section 8.7 has the timeline.
 - **Verification against Immich's own checksums.** Immich stores a SHA-1 for every original. Each run hashes every file it copied and a random 2 % of the older originals and compares them with the database. Every 13th run hashes all originals. Silent corruption on either disk shows up.
 - **A fresh database dump at the start of each run**, so files and database match.
 - **The Immich configuration is copied too**: compose file, `.env`, exported settings, fstab, the scripts, and the recovery chapter, so the instructions travel with the data.
@@ -69,7 +69,7 @@ sudo umount /mnt/immich-backup && sudo udisksctl power-off -b /dev/sdX
 
 1. Copy `scripts/backup/` to `/opt/immich-tools/backup/` and `scripts/backup/backup.conf.example` to `/etc/immich-tools/backup.conf`. Fill in the disk's by-id path, the plug id, the Immich paths, the thresholds and the email settings.
 2. Put the admin API key in `/etc/immich-tools/admin.key`, mode 600.
-3. For email, create a mailbox used for nothing else, at your mail provider or as a Gmail app password on a separate account, and put host, port, user, password, from and to into `/etc/immich-tools/smtp.json`, mode 600. Never put your main account's password on the Pi: a mailbox password gives full access to that mailbox. Port 465 means implicit TLS, 587 means STARTTLS. The certificate is checked.
+3. For email, create a mailbox used for nothing else, at your mail provider or as a Gmail app password on a separate account, and put host, port, user, password, from and to into `/etc/immich-tools/smtp.json`, mode 600. Never put your main account's password on the Pi: a mailbox password gives full access to that mailbox. Port 465 means implicit TLS, 587 means STARTTLS. The certificate is checked. Optional: `from_name`, the sender name in the inbox. The default is "Immich on Pi".
 4. Install the systemd units and the timer. The timer runs Sunday 03:30 and catches up after a missed week:
 
 ```bash
@@ -87,11 +87,38 @@ It mirrors the media folder and leaves the disk mounted. Sixty seconds later it 
 
 ## 8.6 What the mail says
 
-Subject first: `✅ Immich backup PASS · Sun 8 Nov · run #2` or `❌ Immich backup FAIL at step verify · ...`. Inside: a table with run, duration, disk read sample, data size, backup disk usage, database dump, files copied, files parked in removed, folders purged, verification result and warnings, then the last lines of the log. The full log stays on the Pi under `/var/lib/immich-tools/logs/`.
+Subject first: `✅ Immich backup PASS · Sun 8 Nov · run #2` or `❌ Immich backup FAIL at step verify · ...`. Inside: a table with the facts of the run, then the last lines of the log. The full log stays on the Pi under `/var/lib/immich-tools/logs/`.
+
+The table shows run, duration, disk read sample, data size, backup disk usage, database dump, verification result and warnings. These rows count files, photos and videos:
+
+| Row | What it counts |
+|---|---|
+| Files copied | Files copied in this run. Folders are not counted. |
+| Deleted or replaced files | Files this run moved into `removed/<date>/`: files deleted in Immich, and the older copies of changed files such as sidecars and thumbnails. |
+| In Immich's trash | Photos and videos in the trash of all users, and how many of them Immich deletes before the next run. |
+| Only on the backup | Deleted photos and videos whose last copy is in `removed/`, and how many of them the next run deletes for good. |
+| Deleted for good this run | The `removed/` folders this run purged, with the photos and videos in them. |
+
+The photo and video counts follow what you see in Immich. A Live Photo counts once. When Immich moves a file, for example after a date change, the old path lands in `removed/` too. The count compares checksums with Immich's database and leaves such files out.
 
 Other mails: `❌ Immich backup: plug problem`, `❌ Immich backup: the service failed without a report`, `⚠️ Immich backup needs attention: ...` from the daily 09:00 check.
 
-## 8.7 By hand
+## 8.7 What happens to a deleted photo
+
+| When | What happens | How to get it back |
+|---|---|---|
+| Day 0 | You delete the photo. It goes to Immich's trash. | Restore it from the trash. |
+| Day 30, at night | Immich's nightly job, 00:00 by default, deletes the file, its thumbnails and its faces. | From the backup. Until the next run, the backup still holds it under `media/library/`. |
+| The next Sunday, 03:30 | The weekly run moves the backup's copy into `removed/<date>/`. | Copy it from `removed/<date>/` and upload it again, [chapter 9.5](09-recovery.md). |
+| 13 weeks later | The first weekly run after the folder is 12 weeks old deletes it. | Not possible. |
+
+From the delete to the purge: 121 to 128 days, about four months. The 30 days are Immich's trash setting, [chapter 3](03-configure.md). The 12 weeks are `KEEP_REMOVED_DAYS` in `backup.conf`.
+
+- The 13 weeks count from the run that set the copy aside, not from the day you deleted the photo.
+- "Empty trash" and "Delete permanently" in Immich skip the 30 days. The backup steps stay. That makes about three months.
+- The mail shows how many photos and videos are in each stage, section 8.6.
+
+## 8.8 By hand
 
 ```bash
 sudo systemctl start immich-backup.service      # run now
@@ -99,8 +126,9 @@ cat /var/lib/immich-tools/LAST-RUN.txt           # last result, one line
 /opt/immich-tools/backup/monitor_backup.sh       # what is running right now
 ```
 
-## 8.8 Limits
+## 8.9 Limits
 
 - The backup sits next to the Pi. It covers disk failure and mistakes, not fire or theft. Chapter 9 lists what an off-site copy needs.
 - Photos added through Immich exist only on the Pi until the next Sunday. Run the job by hand after a big import.
+- A photo that you upload and then delete for good before the next Sunday never reaches the backup.
 - The backup disk will one day be smaller than the library. The job warns at 90 %. Then the rebuildable folders leave the mirror: add them to `EXCLUDE` in `backup.conf`.

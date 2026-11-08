@@ -4,7 +4,8 @@
 # Runs as root from immich-backup.service (Sunday 03:30 timer, or `sudo systemctl start immich-backup.service`).
 # Steps: guards -> plug on, wait for the drive -> mount -> read sample -> capacity check -> fresh database dump
 #        -> copy of the Immich config -> rsync of the configured folders (deleted/changed files kept in removed/<date>)
-#        -> purge removed/ older than 12 weeks -> verify against Immich's checksums -> unmount, detach, plug off
+#        -> count the photos and videos on their way out (Immich's trash, removed/) -> purge old removed/ folders
+#        -> verify against Immich's checksums -> unmount, detach, plug off
 #        -> status line + email.  Any failure stops the run and leaves the drive mounted and powered.
 set -u
 export PATH=$PATH:/usr/sbin:/sbin:/usr/local/sbin
@@ -16,6 +17,7 @@ PY=$D/venv/bin/python; HELP=$D/backup_helpers.py
 BYID=$BACKUP_DISK_BYID
 MNT=${BACKUP_MNT:-/mnt/immich-backup}; SRC=${IMMICH_DATA:-/mnt/immich}
 THRESH=${CAPACITY_PCT:-90}; KEEP_DAYS=${KEEP_REMOVED_DAYS:-84}; FULL_EVERY=${FULL_VERIFY_EVERY:-13}; SAMPLE_PCT=${SAMPLE_PCT:-2}
+KEEP_TXT=$( [ $(( KEEP_DAYS % 7 )) -eq 0 ] && echo "$(( KEEP_DAYS / 7 )) weeks" || echo "$KEEP_DAYS days" )
 TS=$(date +%Y-%m-%d_%H%M); DATE=$(date +%Y-%m-%d); START_ISO=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 LOG=$LOGD/backup-$TS.log; RLOG=$LOGD/backup-$TS.rsync; REPORT=$LOGD/backup-$TS.verify.txt; COPIED=$LOGD/backup-$TS.copied
 SUMMARY=$LOGD/backup-$TS.summary; : > "$SUMMARY"; T0=$(date +%s); WARN=""
@@ -99,14 +101,21 @@ for name in ${SYNC_DIRS:-media}; do
 done
 sync
 [ $RSYNC_RC -eq 0 ] || fail "rsync exit $RSYNC_RC (nothing purged, run not counted)"
-copied=$(grep -c . "$COPIED" || true)
-parked=$(find "$REMOVED" -type f 2>/dev/null | wc -l)
-log "media files copied this run: $copied; files moved to $REMOVED: $parked"
-summ copied "$copied"; summ removed "$parked$( [ "$parked" -gt 0 ] && echo " (kept 12 weeks in removed/$DATE)")"
+copied=$(grep -c '[^/]$' "$COPIED" || true)     # files only: rsync's log also lists every folder it touched
+parked=$(find "$REMOVED" -type f 2>/dev/null | wc -l)   # deleted at the source, or the older copy of a changed file
+log "media files copied this run: $copied; files deleted or replaced, moved to $REMOVED: $parked"
+summ copied "$copied"; summ removed "$parked$( [ "$parked" -gt 0 ] && echo " (kept $KEEP_TXT in removed/$DATE)")"
 
 STEP=purge
+# Photos and videos on their way out: Immich's trash, and deleted originals that now exist only in removed/.
+# Counted before the purge; a failure here only adds a warning.
+stats=$("$PY" "$HELP" deletion-stats --removed-root "$MNT/removed" --keep-days $KEEP_DAYS 2>>"$LOG") || { warn "deletion stats failed"; stats=""; }
+[ -n "$stats" ] && log "deletion stats: $(printf '%s' "$stats" | tr '\n' '|')"
+printf '%s\n' "$stats" | grep -E '^(trash|backup_only)=' >> "$SUMMARY" || true
+purge_now=$(printf '%s\n' "$stats" | sed -n 's/^purge_now=//p')
 purged=$(find "$MNT/removed" -mindepth 1 -maxdepth 1 -type d -mtime +$KEEP_DAYS -print -exec rm -rf {} + 2>>"$LOG" | tee -a "$LOG" | wc -l)
-summ purged "$purged"
+if [ "$purged" -gt 0 ]; then summ purged "$purged removed/ folder$( [ "$purged" -gt 1 ] && echo s) older than $KEEP_TXT${purge_now:+: $purge_now}"
+else summ purged "none"; fi
 
 STEP=verify
 full=""; [ $(( run_no % FULL_EVERY )) -eq 1 ] && full="--full"

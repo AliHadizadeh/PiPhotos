@@ -5,7 +5,7 @@ Chapter: `docs/08-backup.md`. The destructive step is 3. Confirm it with the per
 ## Needs
 - The backup disk attached to the Pi, its by-id name, model and size.
 - A Tuya-based smart plug, paired in its app, with the device id. The person does the Tuya developer platform steps; the agent cannot create accounts.
-- An email account for reports: host, port, user, password, from, to. Stored in `/etc/immich-tools/smtp.json`, mode 600.
+- An email account for reports: host, port, user, password, from, to, and optionally from_name, the sender name. Stored in `/etc/immich-tools/smtp.json`, mode 600.
 - The admin API key in `/etc/immich-tools/admin.key`, mode 600.
 
 ## Steps
@@ -22,6 +22,7 @@ Chapter: `docs/08-backup.md`. The destructive step is 3. Confirm it with the per
 - `systemctl list-timers 'immich-backup*'` shows Sunday 03:30 and daily 09:00.
 - The plug is off and the disk absent between runs: `monitor_backup.sh`.
 - `backup_plug.py ratecheck` passes.
+- `sudo /opt/immich-tools/backup/venv/bin/python /opt/immich-tools/backup/backup_helpers.py deletion-stats` prints the trash, backup-only and purge rows. With the disk unmounted, the backup-only row says none.
 
 ## Stop conditions
 - The format guard refuses. Do not override it.

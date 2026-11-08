@@ -23,7 +23,7 @@ Chapter: `docs/09-recovery.md`. Slow down. Nothing here is urgent enough to skip
 
 ## C. Deleted photos
 - Within 30 days: the trash in the web app.
-- Within 12 weeks: fetch the files from `removed/<date>/` on the backup disk and re-upload them through the web app, the phone app or the CLI. Never copy files into the library folder by hand: Immich does not see files without a database row.
+- After Immich deleted them: the backup disk holds the files under `media/library/` until the next weekly run, then under `removed/<date>/` for about 13 weeks. Fetch them and re-upload them through the web app, the phone app or the CLI. Never copy files into the library folder by hand: Immich does not see files without a database row.
 
 ## Checks
 - `curl -s http://localhost:2283/api/server/ping` returns pong.

@@ -18,7 +18,7 @@ Open Administration, Settings. Change these:
 | Job concurrency: thumbnails, metadata | 3, 5 | 1, 1 during a migration, then back to 3, 5 | Thumbnails and metadata compete with the upload for the CPU. |
 | Server: external domain | empty | your Tailscale address, see [chapter 7](07-remote-access.md) | Links in emails and shares use it. |
 | Backup: database dump | 02:00, keep 14 | keep | The dumps are the only copy of albums, people, tags and stacks. [Chapter 8](08-backup.md) copies them off the disk. |
-| Trash: days | 30 | keep | A deleted photo stays restorable for 30 days. |
+| Trash: days | 30 | keep | A deleted photo stays restorable for 30 days. The backup then keeps it about 13 more weeks, [chapter 8.7](08-backup.md). |
 
 **Warning about the "required" transcode policy.** It also transcodes every video whose pixel format is not 8-bit 4:2:0. Modern iPhones record 10-bit HDR. On a Pi that is two days of CPU for 8 hours of footage, for no playback gain on Apple devices. Chapter 6 shows how to transcode only what needs it. Never press "Missing" or "All" on the Video Conversion job. It re-queues every HDR clip.
 
